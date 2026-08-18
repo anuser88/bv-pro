@@ -35,3 +35,4 @@ jobs:
           files: |
             .publish/Configurator.exe
             .publish/Runner.exe
+            version.txt
