@@ -109,12 +109,12 @@ public class RunnerF : IDisposable
 				var res = await client?.PostAsync(Targets?[i], Payload, ct)!;
 				int statusCode = (int)res.StatusCode;
 				Success(id.ToString(), statusCode);
+				if (statusCode == 200) i++;
 			}
 			catch
 			{
 				Fail(id.ToString());
 			}
-			i++;
 			i%=Targets!.Length;
 			await Task.Delay(Wait, ct);
 		}
@@ -127,12 +127,12 @@ public class RunnerF : IDisposable
 				var res = await Client.PostAsync(Targets?[i], Payload, ct)!;
 				int statusCode = (int)res.StatusCode;
 				Success("none", statusCode);
+				if (statusCode == 200) i++;
 			}
 			catch
 			{
 				Fail("none");
 			}
-			i++;
 			i%=Targets!.Length;
 			await Task.Delay(Wait, ct);
 		}
