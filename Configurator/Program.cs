@@ -97,6 +97,8 @@ class Program
 	{
 		if (changes)
 			Console.WriteLine("\n\x1b[38;5;11mNotes: Remember to save your changes to apply configs.\x1b[0m");
+		if (enabled && targets.Count == 0)
+			Console.WriteLine("\n\x1b[38;5;11mNotes: The views booster is enabled, but no targets are configured.\x1b[0m");
 		Console.WriteLine();
 		Console.WriteLine($"\x1b[38;5;14mViews booster enabled?: {enabled}\x1b[0m");
 		Console.WriteLine("\x1b[38;5;14mType \"toggle\" to toggle views booster.\x1b[0m");
@@ -139,10 +141,10 @@ class Program
 		try
 		{
 			int i = 0;
-			List<string> targets = new();
-			await foreach (string line in File.ReadLinesAsync("config.txt"))
+			targets = new();
+			foreach (string line in File.ReadLines("config.txt"))
 			{
-				switch (i)
+				switch (i++)
 				{
 					case 0:
 						bool.TryParse(line, out enabled);
@@ -163,11 +165,12 @@ class Program
 						if (!string.IsNullOrWhiteSpace(line)) targets.Add(line);
 						break;
 				}
-				i++;
 			}
+			Console.WriteLine("\x1b[38;5;10mConfigs read successfully!\x1b[0m");
 		}
 		catch
 		{
+			Console.WriteLine("\x1b[38;5;11mNo configs found, creating a new one!\x1b[0m");
 			await WriteConfigs();
 		}
 	}
@@ -181,14 +184,15 @@ class Program
 			writer.WriteLine(refr);
 			writer.WriteLine(postIntv);
 			writer.WriteLine(payload);
-			foreach (string target in targets)
+			int i = 0;
+			while (i < targets.Count)
 			{
-				writer.WriteLine(target);
+				writer.WriteLine(targets[i++]);
 			}
 			writer.Dispose();
 			File.Move("config.tmp", "config.txt", true);
 			_ = ReloadConfigsRequest();
-			Console.WriteLine("\x1b[38;5;10mOperation completed successfully!\x1b[0m");
+			Console.WriteLine("\x1b[38;5;10mConfigs wrote successfully!\x1b[0m");
 		}
 		catch (Exception e) {Console.WriteLine(e);}
 	}

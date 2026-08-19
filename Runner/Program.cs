@@ -113,9 +113,9 @@ class Program
 		{
 			int i = 0;
 			List<string> targets = new();
-			await foreach (string line in File.ReadLinesAsync("config.txt"))
+			foreach (string line in File.ReadLines("config.txt"))
 			{
-				switch (i)
+				switch (i++)
 				{
 					case 0:
 						bool.TryParse(line, out enabled);
@@ -136,27 +136,9 @@ class Program
 						if (!string.IsNullOrWhiteSpace(line)) targets.Add(line);
 						break;
 				}
-				i++;
 			}
 			Targets = targets.ToArray();
 		}
-		catch
-		{
-			try
-			{
-				using StreamWriter writer = new StreamWriter("config.tmp");
-				writer.WriteLine(enabled);
-				writer.WriteLine(showFailedTasks);
-				writer.WriteLine(refresh);
-				writer.WriteLine(postInterval);
-				writer.WriteLine(payload);
-				foreach (string target in Targets)
-				{
-					writer.WriteLine(target);
-				}
-				File.Move("config.tmp", "config.txt", true);
-			}
-			catch {}
-		}
+		catch {}
 	}
 }
