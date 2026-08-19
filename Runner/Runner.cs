@@ -14,7 +14,7 @@ public class RunnerF : IDisposable
 {
 	private List<HttpClient>? ProxiedClients;
 	private StringContent? Payload;
-	private string[]? Targets;
+	private List<string>? Targets;
 	private int Wait = 0;
 	private int[] GoodCodes = {200, 429};
 	private bool sft = false;
@@ -115,7 +115,7 @@ public class RunnerF : IDisposable
 			{
 				Fail(id.ToString());
 			}
-			i%=Targets!.Length;
+			i%=Targets!.Count;
 			await Task.Delay(Wait, ct);
 		}
 	}
@@ -133,11 +133,11 @@ public class RunnerF : IDisposable
 			{
 				Fail("none");
 			}
-			i%=Targets!.Length;
+			i%=Targets!.Count;
 			await Task.Delay(Wait, ct);
 		}
 	}
-	public async Task Run(List<string> proxies, string[] targets, int wait, int ts, bool showFailedTasks = true, string payload = "{}", CancellationToken ct = default)
+	public async Task Run(List<string> proxies, List<string> targets, int wait, int ts, bool showFailedTasks = true, string payload = "{}", CancellationToken ct = default)
 	{
 		sft = showFailedTasks;
 		Payload = new StringContent(payload, Encoding.UTF8, "application/json");

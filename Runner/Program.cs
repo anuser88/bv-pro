@@ -28,7 +28,7 @@ class Program
 	}
 	static readonly object _ctsLock = new();
 	static CancellationTokenSource cts = new();
-	static string[] Targets = new string[0];
+	static List<string> Targets = new();
 	static string payload = "{}";
 	static int refresh = 600000;
 	static int postInterval = 15000;
@@ -41,6 +41,7 @@ class Program
 		{
 			await Task.Delay(5000);
 			await ReadConfigs();
+			Console.WriteLine(Targets.Count);
 			lock (_ctsLock)
 			{
 				cts.Dispose();
@@ -48,7 +49,7 @@ class Program
 			}
 			var ct = cts.Token;
 			_ = Refresher(refresh, ct);
-			bool DoStuff = Targets.Length > 0;
+			bool DoStuff = Targets.Count > 0;
 			if (DoStuff && enabled)
 			{
 				Fetcher fetcher = new();
@@ -112,7 +113,7 @@ class Program
 		try
 		{
 			int i = 0;
-			List<string> targets = new();
+			Targets = new();
 			foreach (string line in File.ReadLines("config.txt"))
 			{
 				switch (i++)
@@ -133,11 +134,11 @@ class Program
 						payload = line;
 						break;
 					default:
-						if (!string.IsNullOrWhiteSpace(line)) targets.Add(line);
+						if (!string.IsNullOrWhiteSpace(line)) Targets.Add(line);
 						break;
 				}
 			}
-			Targets = targets.ToArray();
+			Console.WriteLine(Targets.Count);
 		}
 		catch {}
 	}
