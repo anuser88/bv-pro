@@ -77,7 +77,7 @@ public class RunnerF : IDisposable
 		HttpClient client = ProxiedClients?[id]!;
 		try
 		{
-			var res = await client?.PostAsync(Targets?[0], Payload, ct)!;
+			var res = await client?.PostAsync(Targets?[id % Targets.Count], Payload, ct)!;
 			int statusCode = (int)res.StatusCode;
 			if (!GoodCodes.Contains(statusCode)) throw new Exception("Blocked");
 			Success(id.ToString(), statusCode);
@@ -99,7 +99,7 @@ public class RunnerF : IDisposable
 	}
 	private async Task RunProxyWorker(int id, CancellationToken ct = default)
 	{
-		int i = 0;
+		int i = id % Targets.Count;
 		while (true)
 		{
 			HttpClient client = ProxiedClients?[id]!;
@@ -108,7 +108,7 @@ public class RunnerF : IDisposable
 			{
 				var res = await client?.PostAsync(Targets?[i], Payload, ct)!;
 				int statusCode = (int)res.StatusCode;
-				Success(id.ToString(), statusCode);
+				Success($"{id}", statusCode);
 				if (statusCode == 200) i++;
 			}
 			catch

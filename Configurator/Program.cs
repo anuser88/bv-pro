@@ -81,8 +81,8 @@ class Program
 	static List<string> targets = new();
 	static bool enabled = false;
 	static bool sft = false;
-	static int refr = 600000;
-	static int postIntv = 15000;
+	static int refr = 1800000;
+	static int postIntv = 8000;
 	static string payload = "{}";
 	static HttpClient client = new();
 	static void ClearTerminal()
@@ -114,8 +114,8 @@ class Program
 		targets = new List<string>();
 		enabled = false;
 		sft = false;
-		refr = 600000;
-		postIntv = 15000;
+		refr = 1800000;
+		postIntv = 8000;
 		payload = "{}";
 	}
 	static async Task ReloadConfigsRequest()
@@ -124,17 +124,21 @@ class Program
 		{
 			using var client = new NamedPipeClientStream(
 				".",
-				"ezx6t_bvpro_runner_hear",
+				"ezx6t_bvpro_runner_hear0",
 				PipeDirection.Out
 			);
-			client.Connect(1000);
+			client.Connect(3000);
 			using var writer = new StreamWriter(client, Encoding.UTF8)
 			{
 				AutoFlush = true
 			};
 			writer.WriteLine("reload");
 		}
-		catch {}
+		catch (Exception e)
+		{
+			Console.WriteLine("\x1b[38;5;9mRunner is not responding.\x1b[0m");
+			Console.WriteLine(e);
+		}
 	}
 	static async Task ReadConfigs()
 	{
@@ -206,7 +210,6 @@ class Program
 			Console.Write("\x1b[38;5;13m>>> \x1b[38;5;12m");
 			string? typed = Console.ReadLine()!;
 			Console.Write("\x1b[0m");
-			ClearTerminal();
 			switch (typed?.ToLowerInvariant())
 			{
 				case "addbyprid":
@@ -216,7 +219,7 @@ class Program
 						int id = int.Parse(Console.ReadLine()!);
 						if (id == -1)
 						{
-							// targets.Add("https://api.scratch.mit.edu/users/{projectAuthorUsername}/projects/{id}/views");
+							targets.Add("https://api.scratch.mit.edu/users/WPONTA/projects/1368529433/views");
 						}
 						else
 						{
@@ -226,10 +229,12 @@ class Program
 							targets.Add($"https://api.scratch.mit.edu/users/{projectAuthorUsername}/projects/{id}/views");
 						}
 						changes = true;
+						ClearTerminal();
 						Console.WriteLine("\x1b[38;5;10mOperation completed successfully!\x1b[0m");
 					}
 					catch
 					{
+						ClearTerminal();
 						Console.WriteLine("\x1b[38;5;9mInvalid ID or unshared project!\x1b[0m");
 					}
 					break;
@@ -237,6 +242,7 @@ class Program
 					Console.Write("Example for Scratch MIT: https://api.scratch.mit.edu/users/{projectAuthorUsername}/projects/{id}/views\n\x1b[38;5;13mEnter views API: \x1b[38;5;12m");
 					targets.Add(Console.ReadLine()!);
 					changes = true;
+					ClearTerminal();
 					Console.WriteLine("\x1b[38;5;10mOperation completed successfully!\x1b[0m");
 					break;
 				case "remove":
@@ -245,26 +251,32 @@ class Program
 						Console.Write("\x1b[38;5;13mEnter index: \x1b[38;5;12m");
 						targets.RemoveAt(int.Parse(Console.ReadLine()!));
 						changes = true;
+						ClearTerminal();
 						Console.WriteLine("\x1b[38;5;10mOperation completed successfully!\x1b[0m");
 					}
 					catch
 					{
+						ClearTerminal();
 						Console.WriteLine("\x1b[38;5;9mInvalid index!\x1b[0m");
 					}
 					break;
 				case "clear":
 					targets.Clear();
 					changes = true;
+					ClearTerminal();
 					Console.WriteLine("\x1b[38;5;10mOperation completed successfully!\x1b[0m");
 					break;
 				case "quit":
 					quit = true;
+					ClearTerminal();
 					Console.WriteLine("\x1b[38;5;10mOperation completed successfully!\x1b[0m");
 					break;
 				case "":
+					ClearTerminal();
 					Console.WriteLine("\x1b[38;5;9mPlease type a command!\x1b[0m");
 					break;
 				default:
+					ClearTerminal();
 					Console.WriteLine("\x1b[38;5;9mInvalid command!\x1b[0m");
 					break;
 			}
@@ -348,7 +360,7 @@ class Program
 	static void MInstructions()
 	{
 		Console.WriteLine();
-		Console.WriteLine($"\x1b[38;5;14m(Debug): Show failed tasks: {sft}. Type \"sft\" to toggle.\x1b[0m");
+		Console.WriteLine($"\x1b[38;5;14m(Debug Dev-Only): Show failed tasks: {sft}. Type \"sft\" to toggle.\x1b[0m");
 		Console.WriteLine($"\x1b[38;5;14mAutomatically restart views booster each: {refr} milliseconds. Type \"refr\" to change.\x1b[0m");
 		Console.WriteLine($"\x1b[38;5;14mEach proxy post 1 request each: {postIntv} milliseconds. Type \"postIntv\" to change.\x1b[0m");
 		Console.WriteLine($"\x1b[38;5;14mEach request has payload: \"{payload}\". Type \"payload\" to change.\x1b[0m");

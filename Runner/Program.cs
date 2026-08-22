@@ -24,22 +24,28 @@ class Program
 		if (!createdNew)
 			return;
 		_ = Hear();
-		await Run();
+		while (true)
+			await Run();
 	}
 	static readonly object _ctsLock = new();
 	static CancellationTokenSource cts = new();
 	static List<string> Targets = new();
 	static string payload = "{}";
-	static int refresh = 600000;
-	static int postInterval = 15000;
+	static int refresh = 1800000;
+	static int postInterval = 8000;
 	static bool enabled = false;
 	static bool showFailedTasks = false;
 	static async Task Run()
 	{
-		await Task.Delay(10000);
+		var ct = cts.Token;
+		try
+		{
+			await Task.Delay(15000, ct);
+		}
+		catch {}
+		Fetcher fetcher = new();
 		while (true)
 		{
-			await Task.Delay(5000);
 			await ReadConfigs();
 			Console.WriteLine(Targets.Count);
 			lock (_ctsLock)
@@ -47,16 +53,15 @@ class Program
 				cts.Dispose();
 				cts = new CancellationTokenSource();
 			}
-			var ct = cts.Token;
+			ct = cts.Token;
 			_ = Refresher(refresh, ct);
 			bool DoStuff = Targets.Count > 0;
 			if (DoStuff && enabled)
 			{
-				Fetcher fetcher = new();
-				List<string> proxies = await fetcher.GetProxies(showFailedTasks);
 				RunnerF runner = new();
 				try
 				{
+					List<string> proxies = await fetcher.GetProxies(showFailedTasks);
 					await runner.Run(proxies, Targets, postInterval, 10, showFailedTasks, payload, ct);
 				}
 				catch {}
@@ -80,7 +85,7 @@ class Program
 		while (true)
 		{
 			using var server = new NamedPipeServerStream(
-				"ezx6t_bvpro_runner_hear",
+				"ezx6t_bvpro_runner_hear0",
 				PipeDirection.In
 			);
 			await server.WaitForConnectionAsync();
@@ -116,6 +121,7 @@ class Program
 			Targets = new();
 			foreach (string line in File.ReadLines("config.txt"))
 			{
+				Console.WriteLine(line);
 				switch (i++)
 				{
 					case 0:
@@ -138,8 +144,8 @@ class Program
 						break;
 				}
 			}
-			Console.WriteLine(Targets.Count);
 		}
 		catch {}
+		Console.WriteLine("huh");
 	}
 }
