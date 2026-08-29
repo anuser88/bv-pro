@@ -16,6 +16,7 @@ class Program
 {
 	static async Task Main()
 	{
+		Directory.SetCurrentDirectory(AppContext.BaseDirectory);
 		using var mutex = new Mutex(
 			initiallyOwned: true,
 			name: "Ezx6t.BvPro.Runner.SingleInstance",
@@ -32,7 +33,7 @@ class Program
 	static List<string> Targets = new();
 	static string payload = "{}";
 	static int refresh = 1800000;
-	static int postInterval = 8000;
+	static int postInterval = 15000;
 	static bool enabled = false;
 	static bool showFailedTasks = false;
 	static async Task Run()
@@ -146,6 +147,5 @@ class Program
 			}
 		}
 		catch {}
-		Console.WriteLine("huh");
 	}
 }

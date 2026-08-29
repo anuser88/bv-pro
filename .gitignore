@@ -2,4 +2,5 @@ bin/
 obj/
 .publish/
 build.bat
+build-debug.bat
 config.txt

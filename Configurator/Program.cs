@@ -16,9 +16,15 @@ class Program
 {
 	static async Task Main()
 	{
+		Directory.SetCurrentDirectory(AppContext.BaseDirectory);
 		try
 		{
-			Process.Start("Runner.exe");
+			var startInfo = new ProcessStartInfo
+			{
+				FileName = "Runner.exe",
+				UseShellExecute = true
+			};
+			Process.Start(startInfo);
 		}
 		catch {}
 		bool changes = false;
@@ -82,7 +88,7 @@ class Program
 	static bool enabled = false;
 	static bool sft = false;
 	static int refr = 1800000;
-	static int postIntv = 8000;
+	static int postIntv = 15000;
 	static string payload = "{}";
 	static HttpClient client = new();
 	static void ClearTerminal()
@@ -115,7 +121,7 @@ class Program
 		enabled = false;
 		sft = false;
 		refr = 1800000;
-		postIntv = 8000;
+		postIntv = 15000;
 		payload = "{}";
 	}
 	static async Task ReloadConfigsRequest()
@@ -313,6 +319,7 @@ class Program
 				case "sft":
 					sft = !sft;
 					Console.WriteLine("\x1b[38;5;10mOperation completed successfully!\x1b[0m");
+					changes = true;
 					break;
 				case "refr":
 					try
@@ -320,6 +327,7 @@ class Program
 						Console.Write("\x1b[38;5;13mEnter milliseconds: \x1b[38;5;12m");
 						refr = int.Parse(Console.ReadLine()!);
 						Console.WriteLine("\x1b[38;5;10mOperation completed successfully!\x1b[0m");
+						changes = true;
 					}
 					catch
 					{
@@ -332,6 +340,7 @@ class Program
 						Console.Write("\x1b[38;5;13mEnter milliseconds: \x1b[38;5;12m");
 						postIntv = int.Parse(Console.ReadLine()!);
 						Console.WriteLine("\x1b[38;5;10mOperation completed successfully!\x1b[0m");
+						changes = true;
 					}
 					catch
 					{
@@ -342,6 +351,7 @@ class Program
 					Console.Write("\x1b[38;5;13mEnter string payload: \x1b[38;5;12m");
 					payload = Console.ReadLine()!;
 					Console.WriteLine("\x1b[38;5;10mOperation completed successfully!\x1b[0m");
+					changes = true;
 					break;
 				case "quit":
 					quit = true;

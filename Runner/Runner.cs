@@ -17,6 +17,7 @@ public class RunnerF : IDisposable
 	private List<string>? Targets;
 	private int Wait = 0;
 	private int[] GoodCodes = {200, 429};
+	private int[] NextCodes = {200, 404};
 	private bool sft = false;
 	private static readonly HttpClient Client = new();
 	public async Task TestProxies(List<string> ProxiesToUse, int ts = 9, CancellationToken ct = default)
@@ -99,7 +100,7 @@ public class RunnerF : IDisposable
 	}
 	private async Task RunProxyWorker(int id, CancellationToken ct = default)
 	{
-		int i = id % Targets.Count;
+		int i = id % Targets!.Count;
 		while (true)
 		{
 			HttpClient client = ProxiedClients?[id]!;
@@ -109,7 +110,7 @@ public class RunnerF : IDisposable
 				var res = await client?.PostAsync(Targets?[i], Payload, ct)!;
 				int statusCode = (int)res.StatusCode;
 				Success($"{id}", statusCode);
-				if (statusCode == 200) i++;
+				if (NextCodes.Contains(statusCode)) i++;
 			}
 			catch
 			{
@@ -127,7 +128,7 @@ public class RunnerF : IDisposable
 				var res = await Client.PostAsync(Targets?[i], Payload, ct)!;
 				int statusCode = (int)res.StatusCode;
 				Success("none", statusCode);
-				if (statusCode == 200) i++;
+				if (NextCodes.Contains(statusCode)) i++;
 			}
 			catch
 			{
