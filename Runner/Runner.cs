@@ -16,17 +16,28 @@ public class RunnerF : IDisposable
 	private StringContent? Payload;
 	private List<string>? Targets;
 	private int Wait = 0;
-	private int[] GoodCodes = {200, 429};
-	private int[] NextCodes = {200, 404};
+	private static readonly int[] GoodCodes = {200, 429};
+	private static readonly int[] NextCodes = {200, 404};
 	private bool sft = false;
 	private static readonly HttpClient Client = new();
-	public async Task TestProxies(List<string> ProxiesToUse, int ts = 9, CancellationToken ct = default)
+	private readonly object _PCLock = new();
+	private async Task TestProxies(List<string> ProxiesToUse, int par = 100, CancellationToken ct = default)
 	{
 		ProxiedClients = new List<HttpClient>();
-		HttpClientHandler handler;
-		foreach (string proxy in ProxiesToUse!)
+		var queue = new ConcurrentQueue<string>(ProxiesToUse);
+		var tasks = new Task[par];
+		for (int i = 0; i < par; i++)
 		{
-			ct.ThrowIfCancellationRequested(); 
+			tasks[i] = TestProxyWorker(queue, i % Targets!.Count, ct);
+		}
+		await Task.WhenAll(tasks);
+	}
+	private async Task TestProxyWorker(ConcurrentQueue<string> queue, int i = 0, CancellationToken ct = default)
+	{
+		while (queue.TryDequeue(out string? proxy))
+		{
+			HttpClientHandler? handler = null;
+			HttpClient? ProxiedClient = null;
 			try
 			{
 				handler = new HttpClientHandler
@@ -34,69 +45,40 @@ public class RunnerF : IDisposable
 					Proxy = new WebProxy(proxy),
 					UseProxy = true
 				};
-				HttpClient ProxiedClient = new HttpClient(handler);
-				ProxiedClient.Timeout = TimeSpan.FromSeconds(60);
-				ProxiedClients.Add(ProxiedClient);
+				ProxiedClient = new HttpClient(handler);
+				ProxiedClient!.Timeout = TimeSpan.FromSeconds(60);
+				var res = await ProxiedClient!.PostAsync(Targets?[i], Payload, ct)!;
+				int statusCode = (int)res.StatusCode;
+				if (!GoodCodes.Contains(statusCode)) throw new Exception("SiMaNiMi");
+				lock (_PCLock)
+				{
+					ProxiedClients!.Add(ProxiedClient);
+				}
+				Success("unknown", statusCode);
 			}
-			catch {}
-		}
-		int clientsCount = ProxiedClients.Count;
-		if (clientsCount == 0) throw new Exception("No proxy found!");
-		HashSet<int> liveSet = new();
-		Task<int>[] workers = new Task<int>[clientsCount];
-		int k = 0;
-		while (k < clientsCount)
-		{
-			ct.ThrowIfCancellationRequested(); 
-			int j = 0;
-			while (k < clientsCount && j < ts)
+			catch
 			{
-				workers[k] = TestProxyWorker(k, ct);
-				k++;
-				j++;
+				Fail("unknown");
+				try
+				{
+					handler?.Dispose();
+					ProxiedClient?.Dispose();
+				}
+				catch {}
 			}
-			await Task.Delay(20);
-		}
-		foreach (int id in await Task.WhenAll(workers))
-		{
-			ct.ThrowIfCancellationRequested(); 
-			if (id >= 0)
-				liveSet.Add(id);
-		}
-		for (int i = clientsCount-1; i >= 0; i--)
-		{
-			ct.ThrowIfCancellationRequested(); 
-			if (!liveSet.Contains(i))
-			{
-				ProxiedClients?[i].Dispose();
-				ProxiedClients?.RemoveAt(i);
-			}
-		}
-		Console.WriteLine($"\x1b[38;5;11mThere are {ProxiedClients?.Count} live proxies in total\x1b[0m");
-	}
-	private async Task<int> TestProxyWorker(int id, CancellationToken ct = default) {
-		HttpClient client = ProxiedClients?[id]!;
-		try
-		{
-			var res = await client?.PostAsync(Targets?[id % Targets.Count], Payload, ct)!;
-			int statusCode = (int)res.StatusCode;
-			if (!GoodCodes.Contains(statusCode)) throw new Exception("Blocked");
-			Success(id.ToString(), statusCode);
-			return id;
-		}
-		catch
-		{
-			Fail(id.ToString());
-			return -1;
+			ct.ThrowIfCancellationRequested();
 		}
 	}
-	public async Task RunProxies(CancellationToken ct = default) {
+	private async Task RunProxies(CancellationToken ct = default)
+	{
 		int clientsCount = (int)ProxiedClients?.Count!;
 		if (clientsCount == 0) throw new Exception("No live proxy found!");
+		var tasks = new Task[clientsCount + 1];
 		for (int i = 0; i < clientsCount; i++) {
-			_ = RunProxyWorker(i, ct);
+			tasks[i + 1] = RunProxyWorker(i, ct);
 		}
-		await SendLocally(ct);
+		tasks[0] = SendLocally(ct);
+		await Task.WhenAll(tasks);
 	}
 	private async Task RunProxyWorker(int id, CancellationToken ct = default)
 	{
@@ -138,7 +120,7 @@ public class RunnerF : IDisposable
 			await Task.Delay(Wait, ct);
 		}
 	}
-	public async Task Run(List<string> proxies, List<string> targets, int wait, int ts, bool showFailedTasks = true, string payload = "{}", CancellationToken ct = default)
+	public async Task Run(List<string> proxies, List<string> targets, int wait, int par, bool showFailedTasks = true, string payload = "{}", CancellationToken ct = default)
 	{
 		sft = showFailedTasks;
 		Payload = new StringContent(payload, Encoding.UTF8, "application/json");
@@ -146,7 +128,7 @@ public class RunnerF : IDisposable
 		Wait = wait;
 		try
 		{
-			await TestProxies(proxies, ts, ct);
+			await TestProxies(proxies, par, ct);
 			await RunProxies(ct);
 		}
 		catch {}

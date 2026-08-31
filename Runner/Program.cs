@@ -36,6 +36,8 @@ class Program
 	static int postInterval = 15000;
 	static bool enabled = false;
 	static bool showFailedTasks = false;
+	static readonly int[] GoodCodes = {200, 429};
+	static HttpClient client = new();
 	static async Task Run()
 	{
 		var ct = cts.Token;
@@ -48,7 +50,6 @@ class Program
 		while (true)
 		{
 			await ReadConfigs();
-			Console.WriteLine(Targets.Count);
 			lock (_ctsLock)
 			{
 				cts.Dispose();
@@ -56,6 +57,7 @@ class Program
 			}
 			ct = cts.Token;
 			_ = Refresher(refresh, ct);
+			await TestTargets(ct);
 			bool DoStuff = Targets.Count > 0;
 			if (DoStuff && enabled)
 			{
@@ -63,7 +65,7 @@ class Program
 				try
 				{
 					List<string> proxies = await fetcher.GetProxies(showFailedTasks);
-					await runner.Run(proxies, Targets, postInterval, 10, showFailedTasks, payload, ct);
+					await runner.Run(proxies, Targets, postInterval, 1000, showFailedTasks, payload, ct);
 				}
 				catch {}
 				finally
@@ -144,6 +146,29 @@ class Program
 						if (!string.IsNullOrWhiteSpace(line)) Targets.Add(line);
 						break;
 				}
+			}
+		}
+		catch {}
+	}
+	static async Task TestTargets(CancellationToken ct = default)
+	{
+		try
+			{
+			int i = 0;
+			while (i < Targets.Count)
+			{
+				try
+				{
+					var content = new StringContent(payload, Encoding.UTF8, "application/json");
+					var res = await client.PostAsync(Targets[i], content, ct);
+					if (!GoodCodes.Contains((int)res.StatusCode)) throw new Exception("ai hoi");
+					i++;
+				}
+				catch
+				{
+					Targets.RemoveAt(i);
+				}
+				ct.ThrowIfCancellationRequested();
 			}
 		}
 		catch {}
